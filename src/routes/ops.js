@@ -1,6 +1,6 @@
 // routes/ops.js
 // Nexus Digital Solutions — AI Ops Engine v2
-// Production-ready routes with fallback-aware error handling
+// Production-ready Express routes with hardened error handling
 
 const express = require('express');
 const router = express.Router();
@@ -24,22 +24,16 @@ router.get('/health', (req, res) => {
 router.post('/webhook/whatsapp', 
   express.urlencoded({ extended: false }), 
   async (req, res) => {
-    // Always acknowledge webhook immediately (WhatsApp requires <20s response)
     res.sendStatus(200);
-    
     try {
       const from = req.body?.From || req.body?.from || '';
       const body = req.body?.Body || req.body?.body || '';
-      
       if (from && body) {
-        // Process async, don't block webhook response
         processIncoming(from, body).catch(err => {
           console.error('[WhatsApp] Process error:', err.message);
-          // Optional: Send alert to monitoring service here
         });
       }
     } catch (err) {
-      // Log but don't fail webhook (already sent 200)
       console.error('[WhatsApp] Webhook parse error:', err.message);
     }
   }
@@ -52,18 +46,12 @@ router.use(requireAuth);
 router.post('/ai/summarize', async (req, res) => {
   try {
     const { transcript, title } = req.body;
-    
-    // Validation
     if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 10) {
-      return res.status(400).json({ 
-        error: 'Valid transcript (min 10 chars) is required' 
-      });
+      return res.status(400).json({ error: 'Valid transcript (min 10 chars) is required' });
     }
 
-    // Process with AI (fallback chain handled in service)
     const result = await summarizeMeeting(transcript, title || 'Meeting');
     
-    // Create Asana tasks ONLY if AI returned valid structured data
     let tasksCreated = 0;
     const hasValidTasks = Array.isArray(result.tasks) && 
                           result.tasks.length > 0 && 
@@ -73,9 +61,7 @@ router.post('/ai/summarize', async (req, res) => {
     if (hasValidTasks) {
       for (const task of result.tasks) {
         try {
-          // Validate task structure before creating
           if (!task.task || typeof task.task !== 'string') continue;
-          
           await createTask({ 
             name: task.task.trim(), 
             notes: `Owner: ${task.owner || 'Unassigned'}\nBy: ${req.user.name}\nSource: AI Meeting Summary`, 
@@ -84,13 +70,11 @@ router.post('/ai/summarize', async (req, res) => {
           });
           tasksCreated++;
         } catch (taskErr) {
-          // Log but continue with other tasks (partial success is OK)
           console.warn(`[Asana] Task creation failed: ${taskErr.message}`);
         }
       }
     }
     
-    // Log meeting to internal history (non-blocking)
     try {
       await logMeeting({ 
         title: title || 'Meeting', 
@@ -104,36 +88,15 @@ router.post('/ai/summarize', async (req, res) => {
       });
     } catch (logErr) {
       console.warn(`[Log] Meeting log failed: ${logErr.message}`);
-      // Non-critical: don't fail the response
     }
     
-    // Success response
-    res.json({ 
-      success: true, 
-      summary: result, 
-      tasksCreated,
-      // Optional debug meta (only in development)
-      ...(process.env.NODE_ENV === 'development' && { 
-        _debug: { 
-          transcriptLength: transcript.length,
-          hasValidTasks 
-        } 
-      })
-    });
+    res.json({ success: true, summary: result, tasksCreated });
     
   } catch (err) {
-    // Log full error server-side
-    console.error('[POST /ai/summarize] Critical error:', {
-      message: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-      userId: req.user?.id,
-      body: process.env.NODE_ENV === 'development' ? req.body : undefined
-    });
-    
-    // User-friendly error (never expose internals)
+    console.error('[POST /ai/summarize] Critical error:', err.message);
     res.status(500).json({ 
       error: 'Failed to process meeting. Our AI service is temporarily unavailable. Please try again in 1-2 minutes.',
-      retryAfter: 60 // Hint for client-side retry logic
+      retryAfter: 60
     });
   }
 });
@@ -142,21 +105,15 @@ router.post('/ai/summarize', async (req, res) => {
 router.post('/ai/ask', async (req, res) => {
   try {
     const { question } = req.body;
-    
-    // Validation
     if (!question || typeof question !== 'string' || question.trim().length < 3) {
-      return res.status(400).json({ 
-        error: 'A valid question (min 3 chars) is required' 
-      });
+      return res.status(400).json({ error: 'A valid question (min 3 chars) is required' });
     }
 
-    // Fetch context for the AI
     const [tasks, overdue] = await Promise.all([
-      getTasks().catch(() => []), // Graceful degradation: empty array on error
+      getTasks().catch(() => []),
       getOverdueTasks().catch(() => [])
     ]);
     
-    // Get AI answer (fallback chain handled in service)
     const answer = await askOpsBot(question.trim(), { 
       openTasks: tasks.length, 
       overdueTasks: overdue.length, 
@@ -164,18 +121,10 @@ router.post('/ai/ask', async (req, res) => {
       timestamp: new Date().toISOString()
     });
     
-    res.json({ 
-      answer,
-      context: {
-        openTasks: tasks.length,
-        overdueTasks: overdue.length
-      }
-    });
+    res.json({ answer, context: { openTasks: tasks.length, overdueTasks: overdue.length } });
     
   } catch (err) {
     console.error('[POST /ai/ask] Error:', err.message);
-    
-    // Graceful fallback response
     res.status(500).json({ 
       error: 'AI assistant is temporarily unavailable. Please try again shortly.',
       suggestion: 'You can still view tasks and create items manually while we restore service.'
@@ -186,32 +135,17 @@ router.post('/ai/ask', async (req, res) => {
 // ----- Reports: Daily Summary -----
 router.get('/reports/daily', async (req, res) => {
   try {
-    // Fetch data with parallel promises + graceful degradation
     const [tasks, overdue] = await Promise.all([
-      getTasks().catch(err => {
-        console.warn('[Reports] getTasks failed:', err.message);
-        return [];
-      }),
-      getOverdueTasks().catch(err => {
-        console.warn('[Reports] getOverdueTasks failed:', err.message);
-        return [];
-      })
+      getTasks().catch(err => { console.warn('[Reports] getTasks failed:', err.message); return []; }),
+      getOverdueTasks().catch(err => { console.warn('[Reports] getOverdueTasks failed:', err.message); return []; })
     ]);
     
-    // Generate report (fallback chain handled in service)
     const report = await generateDailyReport(tasks, [], overdue);
     
-    res.json({ 
-      report, 
-      openTasks: tasks.length, 
-      overdueTasks: overdue.length,
-      generatedAt: new Date().toISOString()
-    });
+    res.json({ report, openTasks: tasks.length, overdueTasks: overdue.length, generatedAt: new Date().toISOString() });
     
   } catch (err) {
     console.error('[GET /reports/daily] Error:', err.message);
-    
-    // Return minimal valid report structure on total failure
     res.json({
       report: {
         headline: 'Ops Update',
@@ -232,17 +166,10 @@ router.get('/reports/daily', async (req, res) => {
 router.get('/tasks', async (req, res) => {
   try {
     const tasks = await getTasks();
-    res.json({ 
-      tasks, 
-      count: tasks.length,
-      fetchedAt: new Date().toISOString()
-    });
+    res.json({ tasks, count: tasks.length, fetchedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[GET /tasks] Error:', err.message);
-    res.status(500).json({ 
-      error: 'Failed to fetch tasks. Please try again.',
-      retry: true
-    });
+    res.status(500).json({ error: 'Failed to fetch tasks. Please try again.', retry: true });
   }
 });
 
@@ -250,15 +177,10 @@ router.get('/tasks', async (req, res) => {
 router.post('/tasks/create', async (req, res) => {
   try {
     const { name, notes, due_on, priority } = req.body;
-    
-    // Validation
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
-      return res.status(400).json({ 
-        error: 'Task name (min 2 chars) is required' 
-      });
+      return res.status(400).json({ error: 'Task name (min 2 chars) is required' });
     }
     
-    // Sanitize and create
     const task = await createTask({ 
       name: name.trim(), 
       notes: notes?.trim() || '', 
@@ -267,26 +189,14 @@ router.post('/tasks/create', async (req, res) => {
       createdBy: req.user.id
     });
     
-    res.status(201).json({ 
-      success: true, 
-      task,
-      message: 'Task created successfully'
-    });
+    res.status(201).json({ success: true, task, message: 'Task created successfully' });
     
   } catch (err) {
     console.error('[POST /tasks/create] Error:', err.message);
-    
-    // Handle common Asana API errors
     if (err.message?.includes('quota') || err.message?.includes('rate limit')) {
-      return res.status(429).json({ 
-        error: 'Task service is busy. Please wait 30 seconds and try again.',
-        retryAfter: 30
-      });
+      return res.status(429).json({ error: 'Task service is busy. Please wait 30 seconds and try again.', retryAfter: 30 });
     }
-    
-    res.status(500).json({ 
-      error: 'Failed to create task. Please check your input and try again.'
-    });
+    res.status(500).json({ error: 'Failed to create task. Please check your input and try again.' });
   }
 });
 
@@ -294,31 +204,17 @@ router.post('/tasks/create', async (req, res) => {
 router.put('/tasks/:gid/complete', async (req, res) => {
   try {
     const { gid } = req.params;
-    
     if (!gid || typeof gid !== 'string') {
       return res.status(400).json({ error: 'Valid task ID is required' });
     }
-    
     const task = await completeTask(gid);
-    
-    res.json({ 
-      success: true, 
-      task,
-      message: 'Task marked complete',
-      completedAt: new Date().toISOString()
-    });
-    
+    res.json({ success: true, task, message: 'Task marked complete', completedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[PUT /tasks/:gid/complete] Error:', err.message);
-    
-    // Handle "not found" vs "server error"
     if (err.message?.includes('not found') || err.status === 404) {
       return res.status(404).json({ error: 'Task not found or already completed' });
     }
-    
-    res.status(500).json({ 
-      error: 'Failed to update task. Please try again.'
-    });
+    res.status(500).json({ error: 'Failed to update task. Please try again.' });
   }
 });
 
@@ -326,63 +222,36 @@ router.put('/tasks/:gid/complete', async (req, res) => {
 router.post('/events/meeting', async (req, res) => {
   try {
     const { title, transcript } = req.body;
-    
-    // Validation
     if (!title || !transcript) {
-      return res.status(400).json({ 
-        error: 'Both title and transcript are required' 
-      });
+      return res.status(400).json({ error: 'Both title and transcript are required' });
     }
     if (typeof transcript !== 'string' || transcript.trim().length < 10) {
-      return res.status(400).json({ 
-        error: 'Transcript must be at least 10 characters' 
-      });
+      return res.status(400).json({ error: 'Transcript must be at least 10 characters' });
     }
     
-    // Process summary (fallback chain)
     const summary = await summarizeMeeting(transcript, title);
-    
-    // Persist meeting record
     const meeting = await logMeeting({ 
       title: title.trim(), 
       ...summary, 
       date: new Date().toISOString().split('T')[0],
       createdBy: req.user.id,
-      rawTranscriptLength: transcript.length // For analytics
+      rawTranscriptLength: transcript.length
     });
     
-    res.status(201).json({ 
-      success: true, 
-      meeting, 
-      summary,
-      message: 'Meeting logged successfully'
-    });
+    res.status(201).json({ success: true, meeting, summary, message: 'Meeting logged successfully' });
     
   } catch (err) {
     console.error('[POST /events/meeting] Error:', err.message);
-    
-    res.status(500).json({ 
-      error: 'Failed to process meeting event. Please try again.',
-      retryAfter: 60
-    });
+    res.status(500).json({ error: 'Failed to process meeting event. Please try again.', retryAfter: 60 });
   }
 });
 
-// ===== ERROR HANDLING MIDDLEWARE (Catch-all for unhandled route errors) =====
+// ===== CATCH-ALL ERROR HANDLER =====
 router.use((err, req, res, next) => {
-  // Log unexpected errors
   console.error('[Unhandled Route Error]', {
-    path: req.path,
-    method: req.method,
-    userId: req.user?.id,
-    error: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    path: req.path, method: req.method, userId: req.user?.id, error: err.message
   });
-  
-  // Never leak stack traces to client
-  res.status(500).json({ 
-    error: 'An unexpected error occurred. Our team has been notified.' 
-  });
+  res.status(500).json({ error: 'An unexpected error occurred. Our team has been notified.' });
 });
 
 module.exports = router;

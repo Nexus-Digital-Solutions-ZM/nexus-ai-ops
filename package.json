@@ -8,6 +8,7 @@
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
     "@slack/bolt": "^3.17.0",
     "asana": "^2.0.6",
     "axios": "^1.6.8",
@@ -20,7 +21,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
-    "@anthropic-ai/sdk": "^0.24.0"
+    "openai": "^4.104.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
