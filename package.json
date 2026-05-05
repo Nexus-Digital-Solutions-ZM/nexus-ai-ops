@@ -20,7 +20,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
-    "openai": "^4.47.0"
+    "@anthropic-ai/sdk": "^0.24.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
