@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Nexus Digital Solutions — Ops Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #090910;
+  --surface: #111119;
+  --surface2: #18181f;
+  --surface3: #1f1f28;
+  --border: #252530;
+  --border2: #2e2e3a;
+  --accent: #f97316;
+  --accent2: #fb923c;
+  --accent-dim: rgba(249,115,22,0.12);
+  --green: #22c55e;
+  --green-dim: rgba(34,197,94,0.12);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.12);
+  --blue: #3b82f6;
+  --yellow: #eab308;
+  --text: #f0f0fa;
+  --text2: #a0a0b8;
+  --muted: #50506a;
+  --font: 'Syne', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249,115,22,0.06), transparent),
+    linear-gradient(rgba(249,115,22,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(249,115,22,0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── Login Page ─────────────────────────────────────── */
+#loginPage {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+}
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 24px;
+  padding: 48px 40px;
+  width: 100%; max-width: 400px;
+  position: relative; z-index: 1;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(249,115,22,0.05);
+}
+
+.login-logo {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 36px;
+}
+
+.login-logo-icon {
+  width: 48px; height: 48px;
+  background: var(--accent);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800; color: white;
+  box-shadow: 0 8px 24px rgba(249,115,22,0.3);
+}
+
+.login-logo-text { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; }
+.login-logo-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); letter-spacing: 1px; }
+
+.login-title { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+.login-sub { font-size: 13px; color: var(--text2); margin-bottom: 32px; }
+
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 12px; font-family: var(--mono); color: var(--text2); letter-spacing: 0.5px; margin-bottom: 8px; text-transform: uppercase; }
+
+.form-input {
+  width: 100%; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 10px;
+  padding: 14px 16px; color: var(--text);
+  font-family: var(--font); font-size: 15px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
+.form-input::placeholder { color: var(--muted); }
+
+.login-error {
+  background: var(--red-dim); border: 1px solid rgba(239,68,68,0.2);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  font-size: 13px; color: var(--red); margin-bottom: 16px; display: none;
+}
+
+.btn-primary {
+  width: 100%; background: var(--accent);
+  color: white; border: none; border-radius: 12px;
+  padding: 15px 24px; font-family: var(--font);
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  letter-spacing: -0.3px; margin-top: 8px;
+}
+
+.btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(249,115,22,0.25); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.login-footer { margin-top: 24px; text-align: center; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+/* ── App Shell ──────────────────────────────────────── */
+#app { display: none; min-height: 100vh; position: relative; z-index: 1; }
+
+/* Sidebar */
+.sidebar {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 200;
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+.sidebar-logo {
+  padding: 24px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+
+.logo-icon {
+  width: 34px; height: 34px; background: var(--accent); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; color: white; flex-shrink: 0;
+}
+
+.logo-name { font-size: 13px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; }
+.logo-ver { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+
+.sidebar-nav { flex: 1; padding: 12px; overflow-y: auto; }
+
+.nav-section-label {
+  font-size: 10px; font-family: var(--mono); color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  padding: 8px 12px 4px; margin-top: 4px;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.15s; color: var(--text2); margin-bottom: 2px;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(249,115,22,0.15); }
+.nav-item .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+
+.sidebar-user {
+  padding: 16px 20px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+}
+
+.user-name { font-size: 13px; font-weight: 600; flex: 1; }
+.user-role { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+
+.logout-btn {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px;
+  transition: color 0.15s;
+}
+.logout-btn:hover { color: var(--red); }
+
+/* Overlay for mobile */
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); z-index: 199;
+  backdrop-filter: blur(4px);
+}
+
+/* Main content */
+.main { margin-left: 240px; min-height: 100vh; }
+
+/* Top bar (mobile) */
+.topbar {
+  display: none; position: sticky; top: 0; z-index: 100;
+  background: rgba(9,9,16,0.95); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px; align-items: center; gap: 12px;
+}
+
+.hamburger {
+  background: none; border: none; color: var(--text);
+  cursor: pointer; font-size: 20px; padding: 4px;
+}
+
+.topbar-title { font-size: 15px; font-weight: 700; flex: 1; }
+
+.status-dot-wrap {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--green); font-family: var(--mono);
+}
+
+.pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* Pages */
+.page { display: none; padding: 32px; animation: fadeUp 0.3s ease; }
+.page.active { display: block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* Page header */
+.page-header { margin-bottom: 28px; }
+.page-title { font-size: clamp(24px,4vw,36px); font-weight: 800; letter-spacing: -1.5px; line-height: 1; }
+.page-sub { font-size: 13px; color: var(--text2); font-family: var(--mono); margin-top: 6px; }
+
+/* Stats */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+  gap: 14px; margin-bottom: 28px;
+}
+
+.stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.stat:hover { border-color: var(--border2); transform: translateY(-2px); }
+
+.stat-bar {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent); opacity: 0.6;
+}
+.stat-bar.green { background: var(--green); }
+.stat-bar.red { background: var(--red); }
+.stat-bar.blue { background: var(--blue); }
+
+.stat-label { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.stat-val { font-size: 38px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+.stat-val.orange { color: var(--accent); }
+.stat-val.green { color: var(--green); }
+.stat-val.red { color: var(--red); }
+.stat-val.blue { color: var(--blue); }
+
+/* Card */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;
+}
+
+.card-head {
+  padding: 18px 22px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap;
+}
+
+.card-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.card-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.card-body { padding: 22px; }
+
+/* Grid layouts */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+/* Form elements */
+.field { margin-bottom: 14px; }
+.field-label { display: block; font-size: 11px; font-family: var(--mono); color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+
+input[type=text], input[type=email], input[type=password], input[type=date], textarea, select {
+  width: 100%; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 10px;
+  padding: 12px 14px; color: var(--text);
+  font-family: var(--font); font-size: 14px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.1);
+}
+input::placeholder, textarea::placeholder { color: var(--muted); }
+textarea { resize: vertical; min-height: 120px; line-height: 1.6; font-family: var(--mono); font-size: 13px; }
+select { cursor: pointer; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 11px 20px; border-radius: 10px;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; border: none; letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+.btn-accent { background: var(--accent); color: white; }
+.btn-accent:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(249,115,22,0.25); }
+.btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--text2); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--text); background: var(--accent-dim); }
+.btn-danger { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.2); color: var(--red); }
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-full { width: 100%; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+
+/* Result box */
+.result-box {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 18px; margin-top: 16px;
+  display: none; animation: fadeUp 0.3s ease;
+}
+.result-box.show { display: block; }
+.result-section { margin-bottom: 14px; }
+.result-section:last-child { margin-bottom: 0; }
+.result-label { font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 8px; }
+.result-text { font-size: 13px; line-height: 1.7; color: var(--text2); }
+
+/* Task items */
+.task-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; background: var(--surface2);
+  border-radius: 10px; margin-bottom: 8px;
+  border-left: 3px solid var(--border2);
+  transition: border-color 0.2s;
+}
+.task-item.high { border-left-color: var(--red); }
+.task-item.medium { border-left-color: var(--accent); }
+.task-item.low { border-left-color: var(--green); }
+.task-item:hover { border-left-color: var(--accent); }
+
+.task-name { font-size: 13px; font-weight: 600; flex: 1; }
+.task-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 3px; }
+
+.badge {
+  font-size: 9px; font-family: var(--mono); text-transform: uppercase;
+  letter-spacing: 1px; padding: 3px 8px; border-radius: 4px; font-weight: 500; flex-shrink: 0;
+}
+.badge-high { background: var(--red-dim); color: var(--red); }
+.badge-medium { background: var(--accent-dim); color: var(--accent); }
+.badge-low { background: var(--green-dim); color: var(--green); }
+.badge-partner { background: rgba(59,130,246,0.12); color: var(--blue); }
+.badge-admin { background: var(--accent-dim); color: var(--accent); }
+
+/* Task list */
+.task-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 10px;
+  margin-bottom: 8px; transition: all 0.2s;
+}
+.task-row:hover { border-color: var(--border2); }
+
+.check-box {
+  width: 20px; height: 20px; border: 2px solid var(--border2);
+  border-radius: 5px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: all 0.2s;
+}
+.check-box:hover { border-color: var(--green); }
+.check-box.done { background: var(--green); border-color: var(--green); color: white; }
+
+.task-row-name { flex: 1; font-size: 13px; font-weight: 500; }
+.task-row-due { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.task-row-due.overdue { color: var(--red); }
+
+/* Chat */
+.chat-wrap { display: flex; flex-direction: column; gap: 10px; max-height: 340px; overflow-y: auto; margin-bottom: 14px; padding-right: 4px; }
+.chat-wrap::-webkit-scrollbar { width: 4px; }
+.chat-wrap::-webkit-scrollbar-track { background: transparent; }
+.chat-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.msg {
+  padding: 12px 16px; border-radius: 12px;
+  font-size: 13px; line-height: 1.7; max-width: 88%; animation: fadeUp 0.2s ease;
+}
+.msg-bot { background: var(--surface2); border: 1px solid var(--border); align-self: flex-start; }
+.msg-user { background: var(--accent-dim); border: 1px solid rgba(249,115,22,0.15); align-self: flex-end; }
+.msg-who { font-size: 10px; font-family: var(--mono); color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+.chat-input-row { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input-row input { flex: 1; margin: 0; }
+
+/* Loader dots */
+.dots { display: inline-flex; gap: 4px; align-items: center; }
+.dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: dotBounce 0.9s infinite; }
+.dots span:nth-child(2) { animation-delay: 0.15s; }
+.dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dotBounce { 0%,100%{transform:translateY(0);opacity:0.4} 50%{transform:translateY(-5px);opacity:1} }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 14px 18px;
+  font-size: 13px; display: none; gap: 10px; align-items: center;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+  max-width: 320px; animation: slideUp 0.3s ease;
+}
+.toast.show { display: flex; }
+.toast.ok { border-color: rgba(34,197,94,0.25); }
+.toast.err { border-color: rgba(239,68,68,0.25); }
+@keyframes slideUp { from{transform:translateY(8px);opacity:0} to{transform:none;opacity:1} }
+
+/* Empty state */
+.empty { text-align: center; padding: 40px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+.empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+/* Divider */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* WhatsApp status */
+.wa-status {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; background: var(--green-dim);
+  border: 1px solid rgba(34,197,94,0.2); border-radius: 10px;
+  font-size: 13px; color: var(--green); margin-bottom: 16px;
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); box-shadow: 16px 0 48px rgba(0,0,0,0.5); }
+  .sidebar-overlay.show { display: block; }
+  .main { margin-left: 0; }
+  .topbar { display: flex; }
+  .page { padding: 20px 16px; }
+  .two-col, .three-col { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .page-title { font-size: 26px; }
+  .toast { bottom: 16px; right: 16px; left: 16px; max-width: none; }
+}
+
+@media (max-width: 380px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .login-card { padding: 32px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">N</div>
+      <div>
+        <div class="login-logo-text">Nexus Digital Solutions</div>
+        <div class="login-logo-sub">// AI Ops Engine v2</div>
+      </div>
+    </div>
+    <h1 class="login-title">Welcome back</h1>
+    <p class="login-sub">Sign in to your Nexus workspace</p>
+    <div class="login-error" id="loginError"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="loginEmail" placeholder="you@nexusdigital.zm" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" onclick="doLogin()" id="loginBtn">Sign In →</button>
+    <div class="login-footer">Nexus Digital Solutions · Lusaka, Zambia 🇿🇲</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">N</div>
+      <div>
+        <div class="logo-name">Nexus Digital<br>Solutions</div>
+        <div class="logo-ver">Ops Engine v2</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Workspace</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)">
+        <span class="nav-icon">⚡</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('meetings',this)">
+        <span class="nav-icon">🎙️</span> Meetings
+      </div>
+      <div class="nav-item" onclick="showPage('tasks',this)">
+        <span class="nav-icon">📋</span> Tasks
+      </div>
+      <div class="nav-section-label">AI</div>
+      <div class="nav-item" onclick="showPage('assistant',this)">
+        <span class="nav-icon">🤖</span> AI Assistant
+      </div>
+      <div class="nav-section-label">Integrations</div>
+      <div class="nav-item" onclick="showPage('whatsapp',this)">
+        <span class="nav-icon">💬</span> WhatsApp
+      </div>
+      <div class="nav-item" onclick="showPage('settings',this)">
+        <span class="nav-icon">⚙️</span> Settings
+      </div>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="user-avatar" id="userAvatar">SM</div>
+      <div style="flex:1;min-width:0">
+        <div class="user-name" id="userName">Loading...</div>
+        <div class="user-role" id="userRole">—</div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()" title="Logout">⏻</button>
+    </div>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Mobile topbar -->
+    <div class="topbar">
+      <button class="hamburger" onclick="openSidebar()">☰</button>
+      <div class="topbar-title" id="topbarTitle">Dashboard</div>
+      <div class="status-dot-wrap"><div class="pulse"></div> Live</div>
+    </div>
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1 class="page-title">Ops Command<br><span style="color:var(--accent)">Center</span></h1>
+        <p class="page-sub">// nexus.digital · zampos · lusaka, zambia</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-bar orange"></div>
+          <div class="stat-label">Open Tasks</div>
+          <div class="stat-val orange" id="s-open">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-bar red"></div>
+          <div class="stat-label">Overdue</div>
+          <div class="stat-val red" id="s-overdue">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-bar green"></div>
+          <div class="stat-label">Done Today</div>
+          <div class="stat-val green" id="s-done">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-bar blue"></div>
+          <div class="stat-label">Health Score</div>
+          <div class="stat-val blue" id="s-health">—</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">📊 Daily Report</div>
+              <button class="btn btn-ghost btn-sm" onclick="loadReport()">↻ Refresh</button>
+            </div>
+            <div class="card-body" id="reportBody">
+              <div class="empty"><div class="empty-icon">📊</div>Loading report...</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">📋 Recent Tasks</div>
+              <button class="btn btn-ghost btn-sm" onclick="showPage('tasks',null)">View all</button>
+            </div>
+            <div class="card-body" id="dashTaskList">
+              <div class="empty"><div class="empty-icon">📋</div>Loading...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEETINGS PAGE -->
+    <div class="page" id="page-meetings">
+      <div class="page-header">
+        <h1 class="page-title">Meeting <span style="color:var(--accent)">Analyzer</span></h1>
+        <p class="page-sub">// paste notes → AI extracts tasks → auto-logs to Asana</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">🎙️ New Meeting</div>
+          <div class="card-meta">AI-powered · tasks auto-created in Asana</div>
+        </div>
+        <div class="card-body">
+          <div class="field">
+            <label class="field-label">Meeting Title</label>
+            <input type="text" id="mtTitle" placeholder="e.g. ZamPOS Pilot Review · Juicyway Partnership Call">
+          </div>
+          <div class="field">
+            <label class="field-label">Notes / Transcript</label>
+            <textarea id="mtTranscript" style="min-height:160px" placeholder="Paste your meeting notes or transcript here...&#10;&#10;The AI will extract:&#10;• Summary &amp; key decisions&#10;• Action items with owners &amp; deadlines&#10;• Blockers&#10;• Next steps&#10;&#10;All tasks will be automatically created in Asana."></textarea>
+          </div>
+          <button class="btn btn-accent btn-full" onclick="analyzeMeeting()" id="mtBtn">⚡ Analyze &amp; Extract Tasks</button>
+
+          <div class="result-box" id="mtResult"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASKS PAGE -->
+    <div class="page" id="page-tasks">
+      <div class="page-header">
+        <h1 class="page-title">Task <span style="color:var(--accent)">Manager</span></h1>
+        <p class="page-sub">// synced with Asana in real-time</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">➕ Add Task</div>
+          <button class="btn btn-ghost btn-sm" onclick="toggleAddTask()">Toggle form</button>
+        </div>
+        <div class="card-body" id="addTaskSection" style="display:none">
+          <div class="two-col">
+            <div class="field">
+              <label class="field-label">Task Name *</label>
+              <input type="text" id="nt-name" placeholder="What needs to be done?">
+            </div>
+            <div class="field">
+              <label class="field-label">Due Date</label>
+              <input type="date" id="nt-due">
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">Notes</label>
+            <input type="text" id="nt-notes" placeholder="Additional context...">
+          </div>
+          <div class="field">
+            <label class="field-label">Priority</label>
+            <select id="nt-priority">
+              <option value="high">🔴 High Priority</option>
+              <option value="medium" selected>🟡 Medium Priority</option>
+              <option value="low">🟢 Low Priority</option>
+            </select>
+          </div>
+          <button class="btn btn-accent btn-full" onclick="addTask()" id="addTaskBtn">Create Task in Asana</button>
+          <div style="height:16px"></div>
+          <div class="divider"></div>
+        </div>
+        <div class="card-body">
+          <div id="taskListFull">
+            <div class="empty"><div class="empty-icon">📋</div>Loading tasks...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASSISTANT PAGE -->
+    <div class="page" id="page-assistant">
+      <div class="page-header">
+        <h1 class="page-title">AI <span style="color:var(--accent)">Assistant</span></h1>
+        <p class="page-sub">// nexus ops brain · powered by claude</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">🤖 Nexus AI</div>
+          <div class="card-meta">Ask anything about ops, tasks, meetings</div>
+        </div>
+        <div class="card-body">
+          <div class="chat-wrap" id="chatWrap">
+            <div class="msg msg-bot">
+              <div class="msg-who">Nexus AI</div>
+              Hello! I'm your Nexus Ops assistant. Ask me about tasks, meetings, progress, or anything about Nexus Digital Solutions and ZamPOS.
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="askInput" placeholder="What's overdue? Summarize today's progress..." onkeydown="if(event.key==='Enter')sendAsk()">
+            <button class="btn btn-accent" onclick="sendAsk()" id="askBtn">Ask</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WHATSAPP PAGE -->
+    <div class="page" id="page-whatsapp">
+      <div class="page-header">
+        <h1 class="page-title">WhatsApp <span style="color:var(--accent)">Bot</span></h1>
+        <p class="page-sub">// operations via whatsapp · powered by twilio</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">💬 Setup &amp; Status</div></div>
+        <div class="card-body">
+          <div class="wa-status">
+            <span style="font-size:20px">💬</span>
+            <div>
+              <div style="font-weight:700;margin-bottom:2px">WhatsApp Bot Active</div>
+              <div style="font-size:11px;opacity:0.7;font-family:var(--mono)">Authorized numbers receive AI ops updates</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:20px">
+            <div class="result-label" style="margin-bottom:10px">Available Commands (send via WhatsApp)</div>
+            <div class="task-item medium" style="margin-bottom:8px">
+              <div>
+                <div class="task-name" style="font-family:var(--mono);font-size:12px">meeting: [paste your notes]</div>
+                <div class="task-meta">AI analyzes meeting, extracts tasks, logs to Asana</div>
+              </div>
+            </div>
+            <div class="task-item low" style="margin-bottom:8px">
+              <div>
+                <div class="task-name" style="font-family:var(--mono);font-size:12px">tasks</div>
+                <div class="task-meta">View all open tasks and overdue items</div>
+              </div>
+            </div>
+            <div class="task-item" style="margin-bottom:8px">
+              <div>
+                <div class="task-name" style="font-family:var(--mono);font-size:12px">[any question]</div>
+                <div class="task-meta">Ask the AI anything about Nexus ops</div>
+              </div>
+            </div>
+            <div class="task-item high">
+              <div>
+                <div class="task-name" style="font-family:var(--mono);font-size:12px">help</div>
+                <div class="task-meta">Show all available commands</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="result-label" style="margin-bottom:12px">Webhook URL (add to Twilio)</div>
+          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:12px;color:var(--text2);word-break:break-all" id="webhookUrl">
+            https://your-render-url.onrender.com/api/webhook/whatsapp
+          </div>
+
+          <div style="margin-top:16px">
+            <div class="result-label" style="margin-bottom:8px">Daily Report Schedule</div>
+            <div style="font-size:13px;color:var(--text2)">📅 Sent automatically every morning at <strong style="color:var(--accent)">8:00 AM CAT</strong> to all authorized numbers</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">📤 Send Test Message</div></div>
+        <div class="card-body">
+          <div class="field">
+            <label class="field-label">Phone Number (with country code)</label>
+            <input type="text" id="waTestNum" placeholder="e.g. 260971234567">
+          </div>
+          <div class="field">
+            <label class="field-label">Message</label>
+            <textarea id="waTestMsg" style="min-height:80px" placeholder="Test message from Nexus Ops Engine"></textarea>
+          </div>
+          <button class="btn btn-accent" onclick="sendWATest()">Send WhatsApp Message</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <h1 class="page-title">System <span style="color:var(--accent)">Settings</span></h1>
+        <p class="page-sub">// nexus ops engine configuration</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">👤 Your Account</div></div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+            <div class="user-avatar" style="width:56px;height:56px;font-size:20px" id="settingsAvatar">SM</div>
+            <div>
+              <div style="font-size:18px;font-weight:700" id="settingsName">—</div>
+              <div id="settingsRoleBadge" style="margin-top:4px"></div>
+            </div>
+          </div>
+          <button class="btn btn-danger" onclick="doLogout()">⏻ Sign Out</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">🔌 Integration Status</div></div>
+        <div class="card-body">
+          <div class="task-row"><div class="task-row-name">🤖 Claude AI (Anthropic)</div><span class="badge badge-low">Active</span></div>
+          <div class="task-row"><div class="task-row-name">📋 Asana</div><span class="badge badge-low">Active</span></div>
+          <div class="task-row"><div class="task-row-name">💬 WhatsApp (Twilio)</div><span class="badge badge-medium">Configure</span></div>
+          <div class="task-row"><div class="task-row-name">🔔 Slack Bot</div><span class="badge badge-medium">Optional</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div class="card-title">📡 API Reference</div></div>
+        <div class="card-body">
+          <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:16px;font-family:var(--mono);font-size:12px;line-height:2;color:var(--text2)">
+            <span style="color:var(--green)">POST</span> /auth/login<br>
+            <span style="color:var(--green)">POST</span> /auth/logout<br>
+            <span style="color:var(--green)">GET</span>  /auth/me<br>
+            <span style="color:var(--accent)">POST</span> /api/ai/summarize<br>
+            <span style="color:var(--accent)">POST</span> /api/ai/ask<br>
+            <span style="color:var(--blue)">GET</span>  /api/reports/daily<br>
+            <span style="color:var(--blue)">GET</span>  /api/tasks<br>
+            <span style="color:var(--accent)">POST</span> /api/tasks/create<br>
+            <span style="color:var(--yellow)">PUT</span>  /api/tasks/:gid/complete<br>
+            <span style="color:var(--accent)">POST</span> /api/webhook/whatsapp
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let currentUser = null;
+let completedToday = 0;
+
+// ── Auth ──────────────────────────────────────────────
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  errEl.style.display = 'none';
+  if (!email || !password) { showLoginError('Please enter email and password'); return; }
+
+  btn.disabled = true; btn.textContent = 'Signing in...';
+
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { showLoginError(data.error || 'Login failed'); return; }
+    currentUser = data.user;
+    enterApp();
+  } catch { showLoginError('Connection error — is the server running?'); }
+  finally { btn.disabled = false; btn.textContent = 'Sign In →'; }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function checkSession() {
+  try {
+    const res = await fetch(`${API}/auth/me`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data.user;
+      enterApp();
+    }
+  } catch {}
+}
+
+function enterApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('userAvatar').textContent = currentUser.initials;
+  document.getElementById('userName').textContent = currentUser.name;
+  document.getElementById('userRole').textContent = currentUser.role;
+  document.getElementById('settingsAvatar').textContent = currentUser.initials;
+  document.getElementById('settingsName').textContent = currentUser.name;
+  document.getElementById('settingsRoleBadge').innerHTML = `<span class="badge badge-${currentUser.role}">${currentUser.role}</span>`;
+  document.getElementById('webhookUrl').textContent = `${location.origin}/api/webhook/whatsapp`;
+  loadDashboard();
+}
+
+async function doLogout() {
+  await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' });
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('loginPassword').value = '';
+}
+
+document.getElementById('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+// ── Navigation ────────────────────────────────────────
+function showPage(name, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  const titles = { dashboard:'Dashboard', meetings:'Meeting Analyzer', tasks:'Tasks', assistant:'AI Assistant', whatsapp:'WhatsApp Bot', settings:'Settings' };
+  document.getElementById('topbarTitle').textContent = titles[name] || name;
+  closeSidebar();
+  if (name === 'tasks') loadFullTasks();
+}
+
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+
+// ── Dashboard ─────────────────────────────────────────
+async function loadDashboard() {
+  await Promise.all([loadStats(), loadReport(), loadDashTasks()]);
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch(`${API}/api/tasks`, { credentials:'include' });
+    const data = await res.json();
+    const tasks = data.tasks || [];
+    const today = new Date().toISOString().split('T')[0];
+    const overdue = tasks.filter(t => t.due_on && t.due_on < today);
+    document.getElementById('s-open').textContent = tasks.length;
+    document.getElementById('s-overdue').textContent = overdue.length;
+  } catch {}
+}
+
+async function loadReport() {
+  const el = document.getElementById('reportBody');
+  try {
+    const res = await fetch(`${API}/api/reports/daily`, { credentials:'include' });
+    const data = await res.json();
+    const r = data.report;
+    if (r.healthScore) {
+      document.getElementById('s-health').textContent = `${r.healthScore}/10`;
+      document.getElementById('s-health').className = `stat-val ${r.healthScore>=7?'green':r.healthScore>=5?'blue':'red'}`;
+    }
+    el.innerHTML = `
+      <div style="font-size:15px;font-weight:700;margin-bottom:10px;line-height:1.3">${r.headline}</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px">${r.progress}</div>
+      ${r.urgent?.length?`<div class="result-label">🚨 Urgent</div>${r.urgent.map(u=>`<div style="font-size:13px;color:var(--red);margin-bottom:4px">• ${u}</div>`).join('')}<div style="height:10px"></div>`:''}
+      ${r.tomorrow?.length?`<div class="result-label">➡️ Tomorrow</div>${r.tomorrow.map(t=>`<div style="font-size:13px;color:var(--text2);margin-bottom:4px">• ${t}</div>`).join('')}`:''}
+    `;
+  } catch {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📊</div>Configure API keys to see report</div>';
+  }
+}
+
+async function loadDashTasks() {
+  const el = document.getElementById('dashTaskList');
+  try {
+    const res = await fetch(`${API}/api/tasks`, { credentials:'include' });
+    const data = await res.json();
+    const tasks = (data.tasks || []).slice(0, 5);
+    if (!tasks.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">✅</div>No open tasks</div>'; return; }
+    const today = new Date().toISOString().split('T')[0];
+    el.innerHTML = tasks.map(t => {
+      const od = t.due_on && t.due_on < today;
+      return `<div class="task-row">
+        <div class="task-row-name">${t.name}</div>
+        ${t.due_on?`<div class="task-row-due ${od?'overdue':''}">${od?'⚠️':''} ${t.due_on}</div>`:''}
+      </div>`;
+    }).join('');
+  } catch {
+    el.innerHTML = '<div class="empty">Connect Asana to see tasks</div>';
+  }
+}
+
+// ── Meetings ──────────────────────────────────────────
+async function analyzeMeeting() {
+  const transcript = document.getElementById('mtTranscript').value.trim();
+  const title = document.getElementById('mtTitle').value.trim() || 'Nexus Meeting';
+  if (!transcript) { toast('Paste a meeting transcript first', 'err'); return; }
+
+  const btn = document.getElementById('mtBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="dots"><span></span><span></span><span></span></div> Analyzing...';
+
+  try {
+    const res = await fetch(`${API}/api/ai/summarize`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript, title })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const s = data.summary;
+
+    const el = document.getElementById('mtResult');
+    el.className = 'result-box show';
+    el.innerHTML = `
+      <div class="result-section">
+        <div class="result-label">📋 Summary</div>
+        <div class="result-text">${s.summary}</div>
+      </div>
+      ${s.decisions?.length?`<div class="result-section"><div class="result-label">✅ Decisions</div><div class="result-text">${s.decisions.map(d=>`• ${d}`).join('<br>')}</div></div>`:''}
+      ${s.tasks?.length?`<div class="result-section"><div class="result-label">📌 Tasks Created in Asana (${data.tasksCreated})</div>${s.tasks.map(t=>`<div class="task-item ${t.priority}"><div style="flex:1"><div class="task-name">${t.task}</div><div class="task-meta">→ ${t.owner}${t.deadline?' · Due '+t.deadline:''}</div></div><span class="badge badge-${t.priority}">${t.priority}</span></div>`).join('')}</div>`:''}
+      ${s.blockers?.length?`<div class="result-section"><div class="result-label">🚨 Blockers</div><div class="result-text" style="color:var(--red)">${s.blockers.map(b=>`• ${b}`).join('<br>')}</div></div>`:''}
+      ${s.nextMeeting?`<div class="result-section"><div class="result-label">➡️ Next Meeting</div><div class="result-text">${s.nextMeeting}</div></div>`:''}
+    `;
+    toast(`Meeting analyzed · ${data.tasksCreated} tasks created in Asana`, 'ok');
+    loadStats();
+  } catch(err) {
+    toast(err.message || 'API error', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Analyze &amp; Extract Tasks';
+  }
+}
+
+// ── Tasks ─────────────────────────────────────────────
+function toggleAddTask() {
+  const el = document.getElementById('addTaskSection');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function loadFullTasks() {
+  const el = document.getElementById('taskListFull');
+  el.innerHTML = '<div class="empty"><div class="dots"><span></span><span></span><span></span></div></div>';
+  try {
+    const res = await fetch(`${API}/api/tasks`, { credentials:'include' });
+    const data = await res.json();
+    const tasks = data.tasks || [];
+    if (!tasks.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">🎉</div>No open tasks — you\'re clear!</div>'; return; }
+    const today = new Date().toISOString().split('T')[0];
+    el.innerHTML = tasks.map(t => {
+      const od = t.due_on && t.due_on < today;
+      return `<div class="task-row" id="tr-${t.gid}">
+        <div class="check-box" onclick="markDone('${t.gid}',this)">✓</div>
+        <div style="flex:1;min-width:0">
+          <div class="task-row-name">${t.name}</div>
+          ${t.assignee?.name?`<div class="task-meta">${t.assignee.name}</div>`:''}
+        </div>
+        ${t.due_on?`<div class="task-row-due ${od?'overdue':''}">${od?'⚠️ ':''} ${t.due_on}</div>`:''}
+      </div>`;
+    }).join('');
+  } catch {
+    el.innerHTML = '<div class="empty">Could not load tasks — check Asana config</div>';
+  }
+}
+
+async function markDone(gid, el) {
+  el.classList.add('done');
+  completedToday++;
+  document.getElementById('s-done').textContent = completedToday;
+  setTimeout(() => {
+    document.getElementById(`tr-${gid}`)?.remove();
+    const cur = parseInt(document.getElementById('s-open').textContent)||0;
+    document.getElementById('s-open').textContent = Math.max(0,cur-1);
+  }, 400);
+  try {
+    await fetch(`${API}/api/tasks/${gid}/complete`, { method:'PUT', credentials:'include' });
+    toast('Task completed in Asana ✓', 'ok');
+  } catch { toast('Marked locally — Asana sync pending', 'err'); }
+}
+
+async function addTask() {
+  const name = document.getElementById('nt-name').value.trim();
+  if (!name) { toast('Task name required', 'err'); return; }
+  const btn = document.getElementById('addTaskBtn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  try {
+    const res = await fetch(`${API}/api/tasks/create`, {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name, notes: document.getElementById('nt-notes').value,
+        due_on: document.getElementById('nt-due').value || undefined,
+        priority: document.getElementById('nt-priority').value
+      })
+    });
+    if (!res.ok) throw new Error('Failed');
+    toast('Task created in Asana ✓', 'ok');
+    document.getElementById('nt-name').value='';
+    document.getElementById('nt-notes').value='';
+    document.getElementById('nt-due').value='';
+    loadFullTasks();
+  } catch { toast('Error creating task', 'err'); }
+  finally { btn.disabled=false; btn.textContent='Create Task in Asana'; }
+}
+
+// ── AI Assistant ──────────────────────────────────────
+async function sendAsk() {
+  const input = document.getElementById('askInput');
+  const q = input.value.trim();
+  if (!q) return;
+
+  const chat = document.getElementById('chatWrap');
+  chat.innerHTML += `<div class="msg msg-user"><div class="msg-who">You</div>${q}</div>`;
+  input.value = '';
+  chat.innerHTML += `<div class="msg msg-bot" id="botTyping"><div class="msg-who">Nexus AI</div><div class="dots"><span></span><span></span><span></span></div></div>`;
+  chat.scrollTop = chat.scrollHeight;
+  document.getElementById('askBtn').disabled = true;
+
+  try {
+    const res = await fetch(`${API}/api/ai/ask`, {
+      method:'POST', credentials:'include',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ question: q })
+    });
+    const data = await res.json();
+    document.getElementById('botTyping').innerHTML = `<div class="msg-who">Nexus AI</div>${data.answer || data.error}`;
+  } catch {
+    document.getElementById('botTyping').innerHTML = `<div class="msg-who">Nexus AI</div><span style="color:var(--red)">Could not reach the API</span>`;
+  } finally {
+    document.getElementById('askBtn').disabled = false;
+    chat.scrollTop = chat.scrollHeight;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('askInput').addEventListener('keydown', e => { if(e.key==='Enter') sendAsk(); });
+});
+
+// ── WhatsApp test ─────────────────────────────────────
+async function sendWATest() {
+  const num = document.getElementById('waTestNum').value.trim();
+  const msg = document.getElementById('waTestMsg').value.trim();
+  if (!num || !msg) { toast('Enter number and message', 'err'); return; }
+  toast('WhatsApp test — configure Twilio keys in .env to send', 'ok');
+}
+
+// ── Toast ─────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = (type==='ok'?'✅ ':'❌ ') + msg;
+  el.className = `toast show ${type}`;
+  setTimeout(() => el.className='toast', 3500);
+}
+
+// ── Init ──────────────────────────────────────────────
+checkSession();
+</script>
+</body>
+</html>
