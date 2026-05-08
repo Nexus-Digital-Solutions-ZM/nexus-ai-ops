@@ -9,6 +9,15 @@ const OpenAI = require('openai');
 // ===== CONFIG: Provider Chain (Order = Priority) =====
 const PROVIDERS = [
   {
+    name: 'deepseek-nvidia',
+    type: 'openai-compatible',
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+    apiKey: process.env.NVIDIA_API_KEY,
+    model: process.env.DEEPSEEK_MODEL || 'deepseek-ai/deepseek-v4-pro',
+    timeout: 15000,
+    enabled: !!process.env.NVIDIA_API_KEY
+  },
+  {
     name: 'anthropic',
     type: 'anthropic',
     apiKey: process.env.ANTHROPIC_API_KEY,
@@ -17,13 +26,22 @@ const PROVIDERS = [
     enabled: !!process.env.ANTHROPIC_API_KEY
   },
   {
-    name: 'groq',
+    name: 'glm-nvidia',
     type: 'openai-compatible',
-    baseURL: 'https://api.groq.com/openai/v1',
-    apiKey: process.env.GROQ_API_KEY,
-    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-    timeout: 8000,
-    enabled: !!process.env.GROQ_API_KEY
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+    apiKey: process.env.NVIDIA_API_KEY,
+    model: process.env.GLM_MODEL || 'z-ai/glm-5.1',
+    timeout: 15000,
+    enabled: !!process.env.NVIDIA_API_KEY
+  },
+  {
+    name: 'google-ai',
+    type: 'openai-compatible',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    apiKey: process.env.GOOGLE_AI_API_KEY,
+    model: process.env.GOOGLE_MODEL || 'gemini-2.0-flash',
+    timeout: 15000,
+    enabled: !!process.env.GOOGLE_AI_API_KEY
   },
   {
     name: 'openrouter',
@@ -35,13 +53,13 @@ const PROVIDERS = [
     enabled: !!process.env.OPENROUTER_API_KEY
   },
   {
-    name: 'google-ai',
+    name: 'groq',
     type: 'openai-compatible',
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-    apiKey: process.env.GOOGLE_AI_API_KEY,
-    model: process.env.GOOGLE_MODEL || 'gemini-2.0-flash',
-    timeout: 15000,
-    enabled: !!process.env.GOOGLE_AI_API_KEY
+    baseURL: 'https://api.groq.com/openai/v1',
+    apiKey: process.env.GROQ_API_KEY,
+    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    timeout: 8000,
+    enabled: !!process.env.GROQ_API_KEY
   }
 ].filter(p => p.enabled);
 
@@ -75,9 +93,9 @@ async function callOpenAICompatible(provider, messages, maxTokens) {
 
 // ===== HELPER: Call Anthropic Native API =====
 async function callAnthropic(provider, messages, maxTokens) {
-  const client = new Anthropic({ 
+  const client = new Anthropic({
     apiKey: provider.apiKey,
-    timeout: provider.timeout 
+    timeout: provider.timeout
   });
 
   const anthropicMessages = messages.map(m => ({
@@ -96,7 +114,7 @@ async function callAnthropic(provider, messages, maxTokens) {
 
 // ===== CORE: Execute with Fallback Chain =====
 async function executeWithFallback(prompt, maxTokens, systemPrompt = '') {
-  const messages = systemPrompt 
+  const messages = systemPrompt
     ? [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }]
     : [{ role: 'user', content: prompt }];
 
@@ -105,7 +123,7 @@ async function executeWithFallback(prompt, maxTokens, systemPrompt = '') {
   for (const provider of PROVIDERS) {
     try {
       console.log(`[AI] Trying ${provider.name} (${provider.model})...`);
-      
+
       let content = '';
       if (provider.type === 'anthropic') {
         content = await callAnthropic(provider, messages, maxTokens);
@@ -122,7 +140,7 @@ async function executeWithFallback(prompt, maxTokens, systemPrompt = '') {
 
     } catch (error) {
       lastError = error;
-      const isRetryable = 
+      const isRetryable =
         error.status === 429 ||
         error.status >= 500 ||
         error.code === 'ECONNABORTED' ||
@@ -214,7 +232,7 @@ Pure JSON, no markdown.`;
 }
 
 async function askOpsBot(question, context = {}) {
-  const systemPrompt = `You are Nexus AI Ops assistant for Simeon and Siddhartha. Be concise, professional, max 3 sentences. Focus on actionable answers.`;
+  const systemPrompt = `You are Nexus AI Ops assistant for Simeon and Siddhartha at Nexus Digital Solutions Zambia. Be concise, professional, max 3 sentences. Focus on actionable answers.`;
   const prompt = `Context: ${JSON.stringify(context)}\nQuestion: ${question}`;
 
   try {
@@ -222,7 +240,7 @@ async function askOpsBot(question, context = {}) {
     return content.trim();
   } catch (error) {
     console.error('[askOpsBot] Fallback chain failed:', error.message);
-    return `⚠️ AI assistant temporarily unavailable. Please try again in a moment or contact support.`;
+    return `⚠️ AI assistant temporarily unavailable. Please try again in a moment.`;
   }
 }
 
